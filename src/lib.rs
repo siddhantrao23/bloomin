@@ -2,13 +2,15 @@ extern crate core;
 extern crate bit_vec;
 
 use std::cmp::{min, max};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hasher, Hash};
+use std::collections::hash_map::{DefaultHasher, RandomState};
+use std::hash::{Hasher, Hash, BuildHasher, self};
 use bit_vec::BitVec;
 
 pub struct BloomFilter {
     bits: BitVec,
     num_hash_fn: u32,
+    hasher_one: DefaultHasher,
+    hasher_two: DefaultHasher,
 }
 
 impl BloomFilter {
@@ -19,13 +21,16 @@ impl BloomFilter {
             num_hash_fn: estimate_hash(
                 no_bits,
                 expected_num_items
-            )
+            ),
+            hasher_one: RandomState::new().build_hasher(),
+            hasher_two: RandomState::new().build_hasher(),
         }
     }
 
     pub fn insert<T: Hash>(& mut self, value: &T) {
         for i in 0..self.num_hash_fn as usize {
             let idx = self.double_hash(&value, i);
+            println!("Setting idx {}", idx);
             self.bits.set(idx as usize, true);
         }
     }
@@ -33,6 +38,7 @@ impl BloomFilter {
     pub fn contains<T: Hash>(& mut self, value: &T) -> bool {
         for i in 0..self.num_hash_fn as usize {
             let idx = self.double_hash(&value, i);
+            println!("Checking idx {}", idx);
             match self.bits.get(idx as usize) {
                 Some(b) => {
                     if !b { 
@@ -49,16 +55,20 @@ impl BloomFilter {
         self.bits.clear();
     }
 
-    fn double_hash<T: Hash>(&mut self, value: &T, idx: usize) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        value.hash(&mut hasher);
-        let hash1 = hasher.finish();
+    fn double_hash<T: Hash>(&mut self, value: &T, hash_fn_idx: usize) -> u64 {
+        value.hash(&mut self.hasher_one);
+        value.hash(&mut self.hasher_two);
+        
+        let h2 = self.hasher_one.finish();
+        let h1 = self.hasher_two.finish();
 
-        hasher = DefaultHasher::new();
-        value.hash(&mut hasher);
-        let hash2 = hasher.finish();
-
-        (hash1 + hash2 * idx as u64) % (1 << self.bits.len())
+        
+        let len = self.bits.len() as u64;
+        let h = match h2.checked_mul(hash_fn_idx as u64) {
+            Some(mul_result) => h1.wrapping_add(mul_result),
+            None => h1,            
+        };
+        h % len
     }
 }
 
@@ -80,7 +90,8 @@ mod tests {
     fn it_works() {
         let mut filter = BloomFilter::new(0.01, 100);
         filter.insert(&10);
-        filter.contains(&10);
-        filter.contains(&20);
+        // TODO: for some reason this is false check
+        println!["{}", filter.contains(&10)];
+        println!["{}", filter.contains(&20)];
     }
 }
