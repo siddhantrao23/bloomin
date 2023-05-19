@@ -1,4 +1,4 @@
-use std::{hash::{BuildHasher, Hash, Hasher}, collections::hash_map::RandomState};
+use std::{hash::{BuildHasher, Hash, Hasher}};
 
 pub struct HashIter {
   h1: u64,
@@ -24,9 +24,9 @@ impl Iterator for HashIter {
 }
 
 impl HashIter {
-  pub fn new<T: Hash>(value: &T, num_hash_fn: u32) -> HashIter {
-    let mut hasher_one = RandomState::new().build_hasher();
-    let mut hasher_two = RandomState::new().build_hasher();
+  pub fn new<T: Hash, R: BuildHasher>(value: &T, num_hash_fn: u32, build_hasher_one: &R, build_hasher_two: &R) -> HashIter {
+    let mut hasher_one = build_hasher_one.build_hasher();
+    let mut hasher_two = build_hasher_two.build_hasher();
     
     value.hash(&mut hasher_one);
     value.hash(&mut hasher_two);
