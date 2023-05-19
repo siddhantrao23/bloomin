@@ -63,22 +63,6 @@ impl BloomFilter {
     fn clear(&mut self) {
         self.bits.clear();
     }
-
-   // fn double_hash<T: Hash>(&mut self, value: &T, hash_fn_idx: usize) -> u64 {
-   //     value.hash(&mut self.hasher_one);
-   //     value.hash(&mut self.hasher_two);
-   //     
-   //     let h1 = self.hasher_one.finish();
-   //     let h2 = self.hasher_two.finish();
-
-   //     let len = self.bits.len() as u64;
-   //     let h = match h2.checked_mul(hash_fn_idx as u64) {
-   //         Some(mul_result) => h1.wrapping_add(mul_result),
-   //         None => h1,            
-   //     };
-   //     println!("hash is {} {} with idx  {} = {}", h1, h2, hash_fn_idx, h);
-   //     h % len
-   // }
 }
 
 pub fn estimate_bits(false_pos_rate: f32, expected_num_items: u32) -> usize {
